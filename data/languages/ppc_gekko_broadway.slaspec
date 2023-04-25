@@ -1160,14 +1160,14 @@ CRM_CR:	cr0		is CRM=128 & cr0	{tmp:4 = zext(cr0) << 28;export tmp;}
 define pcodeop ldexpf;
 
 macro load_ps(ps0D, ps1D, EA, W, I) {
-	lt:1 = 0;
-	ls:1 = 0;
-	wFlag:1 = 0;
+	local lt:1 = 0;
+	local ls:1 = 0;
+	local wFlag:1 = 0;
 	lt[0,3] = I[16,3];
 	ls[0,3] = I[24,6];
 	wFlag = W;
-	one:1 = 1;
-	floatOne:8 = int2float(one);
+	local one:1 = 1;
+	local floatOne:8 = int2float(one);
 
 	local scale;
 	if (ls == 0) goto <noscale>;
@@ -1213,6 +1213,19 @@ macro load_ps(ps0D, ps1D, EA, W, I) {
 	ps1D = floatOne;
 }
 
+:psq_l fD,dPlusRaOrZeroAddressPS,W,0 is OP=56 & fD & W & I=0 & dPlusRaOrZeroAddressPS & ps0D & ps1D
+{
+	EA:4 = dPlusRaOrZeroAddressPS;
+	ps0D = float2float(*:4(EA));
+	local wFlag:1 = W;
+	if (wFlag) goto <floatw1>;
+	ps1D = float2float(*:4(EA + 4));
+	goto inst_next;
+	<floatw1>
+	local one:1 = 1;
+	ps1D = int2float(one);
+}
+
 :psq_l fD,dPlusRaOrZeroAddressPS,W,I is OP=56 & fD & W & I & dPlusRaOrZeroAddressPS & ps0D & ps1D
 {
 	EA:4 = dPlusRaOrZeroAddressPS;
@@ -1240,11 +1253,11 @@ macro load_ps(ps0D, ps1D, EA, W, I) {
 }
 
 macro store_ps(ps0S, ps1S, EA, W, I) {
-	lt:1 = 0;
-	ls:1 = 0;
+	local lt:1 = 0;
+	local ls:1 = 0;
 	lt[0,3] = I[0,3];
 	ls[0,3] = I[8,6];
-	wFlag:1 = W;
+	local wFlag:1 = W;
 
 	local scale;
 	if (ls == 0) goto <noscale>;
@@ -1275,6 +1288,15 @@ macro store_ps(ps0S, ps1S, EA, W, I) {
 
 	<float>
 	*:4(EA) = float2float(ps0S);
+	if (wFlag == 1) goto inst_next;
+	*:4(EA + 4) = float2float(ps1S);
+}
+
+:psq_st fS,dPlusRaOrZeroAddressPS,W,0 is OP=60 & fS & A & W & I=0 & dPlusRaOrZeroAddressPS & ps0S & ps1S
+{
+	EA:4 = dPlusRaOrZeroAddressPS;
+	*:4(EA) = float2float(ps0S);
+	local wFlag:1 = W;
 	if (wFlag == 1) goto inst_next;
 	*:4(EA + 4) = float2float(ps1S);
 }
